@@ -95,14 +95,25 @@ class ResNetTabular(TabularBase):
 
 # --- FT-Transformer ---
 class FTTransformer(TabularBase):
+    """
+    Continuous FT-Transformer.
+    Da kategorische Features durch Target Encoding bereits numerisch sind,
+    nutzen wir ausschließlich den Numerical Tokenizer (Gorishniy et al., 2021).
+    """
     def __init__(self, n_features, d_token=192, n_layers=3, n_heads=8,
                  d_ffn_factor=1.33, dropout=0.1, n_classes=2):
         super().__init__()
-        self.tokenizer_w = nn.Parameter(torch.randn(n_features, d_token))
+        
+        # Feature Tokenizer (Numerical)
+        self.tokenizer_w = nn.Parameter(torch.empty(n_features, d_token))
         self.tokenizer_b = nn.Parameter(torch.zeros(n_features, d_token))
-        nn.init.xavier_uniform_(self.tokenizer_w)
+        nn.init.kaiming_uniform_(self.tokenizer_w, a=np.sqrt(5))
 
-        self.cls_token = nn.Parameter(torch.randn(1, 1, d_token))
+        # CLS Token mit Nullen initialisieren für besseres Trainings-Verhalten
+        self.cls_token = nn.Parameter(torch.zeros(1, 1, d_token))
+        
+        # Feature Dropout (wichtig für Tabular Transformer)
+        self.embedding_dropout = nn.Dropout(dropout)
 
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=d_token, nhead=n_heads,
@@ -115,10 +126,18 @@ class FTTransformer(TabularBase):
         self.head = nn.Linear(d_token, n_classes)
 
     def get_features(self, x):
+        # 1. Numerische Tokenization: x_emb = W * x + b
         x_emb = x.unsqueeze(-1) * self.tokenizer_w + self.tokenizer_b
+        
+        # 2. CLS Token anhängen
         cls = self.cls_token.expand(x.shape[0], -1, -1)
         x_seq = torch.cat((cls, x_emb), dim=1)
+        
+        # 3. Dropout & Transformer
+        x_seq = self.embedding_dropout(x_seq)
         x_out = self.transformer(x_seq)
+        
+        # 4. Nur CLS-Token als finales Embedding zurückgeben
         return self.head_norm(x_out[:, 0, :])
 
     def forward(self, x):
