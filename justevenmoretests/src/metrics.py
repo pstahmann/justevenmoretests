@@ -239,7 +239,7 @@ def covariance_alignment(cov0, cov1):
 
 def temporal_decoding_accuracy(X0, X1, cv=5, max_samples=5000):
     X = np.vstack([X0, X1])
-    y = np.array([0] * len(X0) + [1] * len(X1])
+    y = np.array([0] * len(X0) + [1] * len(X1))
     
     unique_y, counts = np.unique(y, return_counts=True)
     if len(unique_y) < 2 or len(X) < cv * 2 or min(counts) < cv:
