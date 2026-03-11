@@ -38,7 +38,11 @@ def engineer_datetime_features(df):
     return df
 
 
-def prepare_data(dataset_name, model_type, target_col="Class"):
+def prepare_data(dataset_name, model_type, seed=42, target_col="Class"):
+    """
+    Lädt die Daten, zieht den Split (basierend auf seed) und fittet das 
+    Preprocessing strikt nur auf X_train, um Leakage zu vermeiden.
+    """
     path = config.DATASET_PATHS.get(dataset_name)
     if not path:
         raise ValueError(
@@ -46,7 +50,7 @@ def prepare_data(dataset_name, model_type, target_col="Class"):
             f"Verfügbar: {list(config.DATASET_PATHS.keys())}"
         )
 
-    print(f"Lade Daten von: {path}")
+    print(f"Lade Daten von: {path} (Split-Seed: {seed})")
     df = pd.read_csv(path)
     if len(df.columns) == 1 and ';' in df.columns[0]:
         print("  -> Semikolon-Trennzeichen erkannt. Lade Daten neu...")
@@ -75,31 +79,27 @@ def prepare_data(dataset_name, model_type, target_col="Class"):
     num_cols = df_X.select_dtypes(include=['number']).columns.tolist()
 
     # Split: 60% Train / 20% Cal / 20% Test (stratifiziert)
+    # WICHTIG: Nutzt nun den übergebenen Seed für sauberes Multi-Seed-Design
     X_temp, X_test, y_temp, y_test = train_test_split(
-        df_X, y, test_size=0.2, stratify=y, random_state=42
+        df_X, y, test_size=0.2, stratify=y, random_state=seed
     )
     X_train, X_cal, y_train, y_cal = train_test_split(
-        X_temp, y_temp, test_size=0.25, stratify=y_temp, random_state=42
+        X_temp, y_temp, test_size=0.25, stratify=y_temp, random_state=seed
     )
 
     print(f"  -> Pipeline ({len(num_cols)} num., {len(cat_cols)} kat.) für {model_type.upper()}")
     print(f"  -> Split: Train={len(X_train)}, Cal={len(X_cal)}, Test={len(X_test)}")
 
     # --- Numerische Pipeline ---
-    # DL-Modelle profitieren von QuantileTransformer (normalisiert wilde Ranges).
-    # Tree-basierte Modelle: StandardScaler (Trees sind skalierungsinvariant,
-    # aber TargetEncoder-Werte profitieren von Zentrierung).
-    # CONFOUND-HINWEIS FÜR PAPER: DL und Trees sehen unterschiedlich
-    # vorverarbeitete Features. Bei epochalem Vergleich muss dies diskutiert
-    # oder per Ablation kontrolliert werden (z.B. DL auch mit StandardScaler).
+    # Confounder-Hinweis: Um im Paper fair zu vergleichen, sollte im Methodenteil
+    # erwähnt werden, warum DL-Modelle Quantile-Transformation nutzen.
     if model_type in ["mlp", "resnet", "ftt"]:
         scaler_type = "quantile"
         num_scaler = QuantileTransformer(
             n_quantiles=min(1000, len(X_train)),
-            output_distribution='normal', random_state=42
+            output_distribution='normal', random_state=seed
         )
     else:
-        # tabnet, xgboost, lgbm, catboost
         scaler_type = "standard"
         num_scaler = StandardScaler()
 
@@ -111,7 +111,7 @@ def prepare_data(dataset_name, model_type, target_col="Class"):
     # --- Kategoriale Pipeline ---
     cat_pipeline = Pipeline([
         ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
-        ('encoder', TargetEncoder(target_type='binary', smooth="auto")),
+        ('encoder', TargetEncoder(target_type='binary', smooth="auto", random_state=seed)),
         ('scaler', StandardScaler())
     ])
 
@@ -134,7 +134,6 @@ def prepare_data(dataset_name, model_type, target_col="Class"):
         'X_test':  X_test_proc.astype(np.float32),
         'y_test':  y_test.astype(np.int64),
         'feature_names': feature_names,
-        # Metadata für Paper-Dokumentation
         'preprocessing': {
             'num_scaler': scaler_type,
             'cat_encoder': 'target_encoding',
