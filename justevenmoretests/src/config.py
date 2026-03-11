@@ -7,9 +7,13 @@ import torch
 IS_KAGGLE = os.environ.get('KAGGLE_KERNEL_RUN_TYPE', '') != ''
 
 if IS_KAGGLE:
-    # Kaggle mountet unter /kaggle/input/<dataset-slug>/
-    KAGGLE_DATA_DIR = "/kaggle/input/imbalanced-data"
+    # Wir prüfen zuerst deinen spezifischen Pfad, dann den Standard-Pfad
+    ALT_PATH = "/kaggle/input/datasets/philipstahmann/imbalanced-data"
+    STD_PATH = "/kaggle/input/imbalanced-data"
+    
+    KAGGLE_DATA_DIR = ALT_PATH if os.path.exists(ALT_PATH) else STD_PATH
     BASE_OUTPUT_DIR = "/kaggle/working/outputs"
+    
     DATASET_PATHS = {
         "mlg_ulb": os.path.join(KAGGLE_DATA_DIR, "mlg-ulbcreditcardfraud.csv"),
         "creditcard_2023": os.path.join(KAGGLE_DATA_DIR, "credit-card-fraud-detection-dataset-2023.csv"),
@@ -39,18 +43,16 @@ RESULTS_DIR = os.path.join(BASE_OUTPUT_DIR, "results")
 # =============================================================================
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# --- Kein Side-Effect beim Import mehr — explizit aufrufen ---
 _initialized = False
 
 def init():
-    """Einmalig aufrufen, um Ordner zu erstellen und Umgebung zu loggen."""
     global _initialized
     if _initialized:
         return
     _initialized = True
 
     if IS_KAGGLE:
-        print("Kaggle-Umgebung erkannt. Cloud-Pfade aktiv.")
+        print(f"Kaggle-Umgebung erkannt. Datenverzeichnis: {KAGGLE_DATA_DIR}")
     else:
         print("Lokale Umgebung erkannt. PC-Pfade aktiv.")
 
@@ -63,6 +65,4 @@ def init():
     else:
         print("Kein CUDA-Gerät gefunden — CPU-Modus.")
 
-
-# Beim ersten Import initialisieren (Rückwärtskompatibilität)
 init()
