@@ -196,7 +196,7 @@ def manifold_tangling_index(X0, X1, k=5):
         return np.nan
         
     X = np.vstack([X0, X1])
-    y = np.array([0] * len(X0) + [1] * len(X1])
+    y = np.array([0] * len(X0) + [1] * len(X1))
     
     if len(X) > 2000:
         try:
