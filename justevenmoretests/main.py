@@ -11,7 +11,6 @@ TREE_MODELS = {"xgboost", "lgbm", "catboost"}
 ALL_MODELS = DL_MODELS | TABNET_MODELS | TREE_MODELS
 
 # Fixer HPO-Seed — HPO wird genau einmal pro Modell × Dataset ausgeführt.
-# Multi-Seed-Evaluation misst Varianz durch Initialisierung/Training, nicht HPO.
 HPO_SEED = 42
 
 
@@ -88,15 +87,21 @@ def main():
                         default=[42, 123, 456, 789, 1024])
     args = parser.parse_args()
 
-    splits = data.prepare_data(args.dataset, args.model)
-
-    # Phase 1: HPO (einmalig)
-    best_params = run_hpo(args, splits)
+    # Phase 1: HPO (einmalig) auf Basis des fixen HPO_SEED-Splits
+    # (Hinweis fürs Paper: Die HPO in training.py trennt X_train nochmal in HPO_Train/HPO_Val auf. 
+    # Da das TargetEncoding aber global auf dem HPO_SEED X_train passierte, gibt es hier minimales 
+    # Leakage bei den kategorialen Features während der HPO. Für das finale Test-Ergebnis ist es
+    # durch Phase 2 aber unkritisch).
+    splits_hpo = data.prepare_data(args.dataset, args.model, seed=HPO_SEED)
+    best_params = run_hpo(args, splits_hpo)
 
     # Phase 2: Finales Training (pro Seed)
     all_summaries = []
     for seed in args.seeds:
-        res = run_single_seed(args, splits, best_params, seed)
+        # WICHTIG: Frischer Daten-Split und neues Pipeline-Fitting für echten Repeated Holdout
+        splits_seed = data.prepare_data(args.dataset, args.model, seed=seed)
+        
+        res = run_single_seed(args, splits_seed, best_params, seed)
         row = {"seed": seed}
         row.update(res["classification_metrics"])
         all_summaries.append(row)
