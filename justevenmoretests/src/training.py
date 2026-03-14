@@ -415,9 +415,17 @@ def run_tree_hpo(model_type, data_splits, n_trials, hpo_seed):
         print(f"  Bester AUPRC: {study.best_value:.4f}")
     else:
         if model_type == "xgboost":
-            best = {"n_estimators": 500, "max_depth": 6, "learning_rate": 0.05,
-                     "subsample": 0.8, "colsample_bytree": 0.8, "min_child_weight": 5,
-                     "reg_alpha": 0.1, "reg_lambda": 1.0, "gamma": 0.0}
+            best = {
+                "n_estimators": 848, 
+                "max_depth": 11, 
+                "learning_rate": 0.08258782132344537,
+                "subsample": 0.9060075624343468, 
+                "colsample_bytree": 0.8871697198303783, 
+                "min_child_weight": 5,
+                "reg_alpha": 0.00093888717389766, 
+                "reg_lambda": 9.90538596164951e-08, 
+                "gamma": 0.0034761212866313007
+            }
         elif model_type == "lgbm":
             best = {"n_estimators": 500, "max_depth": 6, "learning_rate": 0.05,
                      "subsample": 0.8, "colsample_bytree": 0.8, "min_child_samples": 20,
