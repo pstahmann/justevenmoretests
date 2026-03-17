@@ -481,7 +481,26 @@ def run_tree_final(model_type, data_splits, best_params, dataset_name, seed):
     cal_auprc = average_precision_score(y_cal, model.predict_proba(X_cal)[:, 1])
     print(f"  Cal AUPRC: {cal_auprc:.4f}")
 
-    tracker = BoostingTracker(X_train, y_train, X_cal, y_cal)
-    tracker.compute_from_model(model, model_type, n_checkpoints=100, pca_dim=32)
+    # --- FIX: Speicherschonendes Subsampling NUR für den Tracker ---
+    print("  Bereite speicherfreundliches Tracking vor...")
+    mask_1 = (y_train == 1)
+    mask_0 = (y_train == 0)
+    
+    idx_1 = np.where(mask_1)[0]
+    # Max. 10.000 Klasse-0-Samples (oder alle, falls es weniger gibt)
+    idx_0 = np.random.choice(np.where(mask_0)[0], size=min(10000, sum(mask_0)), replace=False)
+    
+    tracker_idx = np.concatenate([idx_1, idx_0])
+    np.random.shuffle(tracker_idx) # Zur Sicherheit mischen
+    
+    X_track_train = X_train[tracker_idx]
+    y_track_train = y_train[tracker_idx]
+    # -------------------------------------------------------------
+
+    # Tracker mit den verkleinerten Daten füttern
+    tracker = BoostingTracker(X_track_train, y_track_train, X_cal, y_cal)
+    
+    # Reduziere ggf. auch die Checkpoints leicht, um noch mehr RAM zu sparen
+    tracker.compute_from_model(model, model_type, n_checkpoints=50, pca_dim=32)
 
     return model, tracker
