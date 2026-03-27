@@ -58,7 +58,7 @@ def prepare_data(dataset_name, model_type, seed=42, target_col="Class"):
 
     # 1. Zielvariable finden
     target = target_col if target_col in df.columns else next(
-        (col for col in df.columns if col.lower() in ['class', 'isfraud']), None
+        (col for col in df.columns if col.lower() in ['class', 'isfraud', 'fraud_bool']), None
     )
     if not target:
         raise ValueError("Keine Zielvariable (Class/isFraud) gefunden.")
