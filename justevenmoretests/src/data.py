@@ -58,15 +58,15 @@ def prepare_data(dataset_name, model_type, seed=42, target_col="Class"):
 
     # 1. Zielvariable finden
     target = target_col if target_col in df.columns else next(
-        (col for col in df.columns if col.lower() in ['class', 'isfraud', 'fraud_bool']), None
+        (col for col in df.columns if col.lower() in ['class', 'isfraud', 'fraud_bool', 'fraudfound']), None
     )
     if not target:
         raise ValueError("Keine Zielvariable (Class/isFraud) gefunden.")
 
     # 2. ID-Spalten entfernen
-    drop_cols = ['id', 'user_id', 'TransactionID', 'device_id']
+    drop_cols = ['id', 'user_id', 'TransactionID', 'device_id', 'PolicyNumber']
     df = df.drop(columns=[c for c in drop_cols if c in df.columns])
-
+    
     # 3. Feature Engineering für Zeit
     df = engineer_datetime_features(df)
 
