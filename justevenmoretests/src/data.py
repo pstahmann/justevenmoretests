@@ -71,6 +71,17 @@ def prepare_data(dataset_name, model_type, seed=42, target_col="Class"):
     df = engineer_datetime_features(df)
 
     y = df[target].values
+    # String-Labels zu binär konvertieren (z.B. "Yes"/"No", "1"/"0")
+    if y.dtype == object:
+        unique_vals = set(y)
+        if unique_vals <= {'Yes', 'No'}:
+            y = (y == 'Yes').astype(int)
+        elif unique_vals <= {'1', '0'}:
+            y = y.astype(int)
+        else:
+            from sklearn.preprocessing import LabelEncoder
+            y = LabelEncoder().fit_transform(y)
+        print(f"  -> Target '{target}' konvertiert: {unique_vals} → {{0, 1}}")
     df_X = df.drop(columns=[target])
     feature_names = df_X.columns.tolist()
 
