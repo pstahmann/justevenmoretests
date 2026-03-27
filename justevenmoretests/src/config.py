@@ -16,10 +16,10 @@ if IS_KAGGLE:
     
     DATASET_PATHS = {
         "mlg_ulb": os.path.join(KAGGLE_DATA_DIR, "mlg-ulbcreditcardfraud.csv"),
-        "bank_fraud": os.path.join(LOCAL_DATA_DIR, "Base.csv"),
+        "bank_fraud": os.path.join(KAGGLE_DATA_DIR, "Base.csv"),
         "creditcard_2023": os.path.join(KAGGLE_DATA_DIR, "credit-card-fraud-detection-dataset-2023.csv"),
         "fraud_data": os.path.join(KAGGLE_DATA_DIR, "Fraud_Data.csv"),
-        "carclaims": os.path.join(LOCAL_DATA_DIR, "carclaims.csv"),
+        "carclaims": os.path.join(KAGGLE_DATA_DIR, "carclaims.csv"),
         "train_transaction": os.path.join(KAGGLE_DATA_DIR, "train_transaction_identity.csv"),
     }
 else:
