@@ -8,7 +8,7 @@ IS_KAGGLE = os.environ.get('KAGGLE_KERNEL_RUN_TYPE', '') != ''
 
 if IS_KAGGLE:
     # Wir prüfen zuerst deinen spezifischen Pfad, dann den Standard-Pfad
-    ALT_PATH = "/kaggle/input/datasets/philipstahmann/imbalanced-data"
+    ALT_PATH = "/kaggle/input/datasets/philipstah/imbalanced-data"
     STD_PATH = "/kaggle/input/imbalanced-data"
     
     KAGGLE_DATA_DIR = ALT_PATH if os.path.exists(ALT_PATH) else STD_PATH
