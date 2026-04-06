@@ -98,7 +98,7 @@ def run_pytorch_hpo(model_type, data_splits, n_trials, hpo_seed):
                                  dropout=params["dropout"]).to(device)
 
         X_t, X_v, y_t, y_v = train_test_split(
-            X_train, y_train, test_size=0.2, stratify=y_train, random_state=hpo_seed
+            X_hpo_base, y_hpo_base, test_size=0.2, stratify=y_hpo_base, random_state=hpo_seed
         )
         ds = TensorDataset(torch.tensor(X_t, dtype=torch.float32),
                            torch.tensor(y_t, dtype=torch.long))
