@@ -363,15 +363,18 @@ def run_tree_hpo(model_type, data_splits, n_trials, hpo_seed):
                 "reg_lambda":       trial.suggest_float("reg_lambda", 1e-8, 10.0, log=True),
                 "gamma":            trial.suggest_float("gamma", 0.0, 5.0),
             }
+            # Early Stopping auf 150 erhöht
             clf = XGBClassifier(**params, scale_pos_weight=scale_pos, eval_metric="logloss",
-                                early_stopping_rounds=50, random_state=hpo_seed,
+                                early_stopping_rounds=150, random_state=hpo_seed,
                                 n_jobs=-1, tree_method="hist")
             clf.fit(X_hpo_tr, y_hpo_tr, eval_set=[(X_hpo_val, y_hpo_val)], verbose=False)
 
         elif model_type == "lgbm":
+            import lightgbm as lgb # Wichtig für das Early Stopping Callback
             params = {
                 "n_estimators":     trial.suggest_int("n_estimators", 100, 2000),
-                "max_depth":        trial.suggest_int("max_depth", 3, 12),
+                # max_depth kann nun -1 sein (unbegrenzt) oder höhere Werte annehmen
+                "max_depth":        trial.suggest_categorical("max_depth", [-1, 5, 7, 9, 12]),
                 "learning_rate":    trial.suggest_float("learning_rate", 0.005, 0.3, log=True),
                 "subsample":        trial.suggest_float("subsample", 0.5, 1.0),
                 "colsample_bytree": trial.suggest_float("colsample_bytree", 0.3, 1.0),
@@ -382,7 +385,9 @@ def run_tree_hpo(model_type, data_splits, n_trials, hpo_seed):
             }
             clf = LGBMClassifier(**params, is_unbalance=True, metric="binary_logloss",
                                  random_state=hpo_seed, n_jobs=-1, verbosity=-1)
-            clf.fit(X_hpo_tr, y_hpo_tr, eval_set=[(X_hpo_val, y_hpo_val)])
+            # Hier hat das Early Stopping (150) in der HPO gefehlt!
+            clf.fit(X_hpo_tr, y_hpo_tr, eval_set=[(X_hpo_val, y_hpo_val)], 
+                    callbacks=[lgb.early_stopping(150, verbose=False)])
 
         elif model_type == "catboost":
             params = {
@@ -396,8 +401,9 @@ def run_tree_hpo(model_type, data_splits, n_trials, hpo_seed):
             }
             clf = CatBoostClassifier(**params, auto_class_weights="Balanced",
                                      eval_metric="Logloss", random_seed=hpo_seed, verbose=0)
+            # Early Stopping auf 150 erhöht
             clf.fit(X_hpo_tr, y_hpo_tr, eval_set=(X_hpo_val, y_hpo_val),
-                    early_stopping_rounds=50, verbose=0)
+                    early_stopping_rounds=150, verbose=0)
 
         preds = clf.predict_proba(X_hpo_val)[:, 1]
         try:
@@ -461,22 +467,21 @@ def run_tree_final(model_type, data_splits, best_params, dataset_name, seed):
 
     if model_type == "xgboost":
         model = XGBClassifier(**best_params, scale_pos_weight=scale_pos,
-                              eval_metric="logloss", early_stopping_rounds=50,
+                              eval_metric="logloss", early_stopping_rounds=150, # Geändert
                               random_state=seed, n_jobs=-1, tree_method="hist")
         model.fit(X_train, y_train, eval_set=[(X_cal, y_cal)], verbose=False)
 
     elif model_type == "lgbm":
         model = LGBMClassifier(**best_params, is_unbalance=True, metric="binary_logloss",
                                random_state=seed, n_jobs=-1, verbosity=-1)
-        # Die Callbacks hier lassen wir auch auf der alten API, da du das so wolltest.
         model.fit(X_train, y_train, eval_set=[(X_cal, y_cal)],
-                  callbacks=[lgb.early_stopping(50, verbose=False)])
+                  callbacks=[lgb.early_stopping(150, verbose=False)]) # Geändert
 
     elif model_type == "catboost":
         model = CatBoostClassifier(**best_params, auto_class_weights="Balanced",
                                    eval_metric="Logloss", random_seed=seed, verbose=0)
         model.fit(X_train, y_train, eval_set=(X_cal, y_cal),
-                  early_stopping_rounds=50, verbose=0)
+                  early_stopping_rounds=150, verbose=0) # Geändert
 
     cal_auprc = average_precision_score(y_cal, model.predict_proba(X_cal)[:, 1])
     print(f"  Cal AUPRC: {cal_auprc:.4f}")
