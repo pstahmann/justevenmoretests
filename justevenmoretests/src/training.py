@@ -53,7 +53,15 @@ def run_pytorch_hpo(model_type, data_splits, n_trials, hpo_seed):
     cw = compute_class_weight('balanced', classes=np.unique(y_train), y=y_train)
     cw = np.clip(cw, a_min=None, a_max=50.0) 
     cw_tensor = torch.tensor(cw, dtype=torch.float32).to(device)
-
+# --- NEU: Subsampling für extrem große Datensätze in der HPO ---
+    MAX_HPO_SAMPLES = 50000
+    if len(X_train) > MAX_HPO_SAMPLES:
+        print(f"  Reduziere Trainingsdaten für HPO von {len(X_train)} auf {MAX_HPO_SAMPLES} Samples...")
+        X_hpo_base, _, y_hpo_base, _ = train_test_split(
+            X_train, y_train, train_size=MAX_HPO_SAMPLES, stratify=y_train, random_state=hpo_seed
+        )
+    else:
+        X_hpo_base, y_hpo_base = X_train, y_train
     def objective(trial):
         if model_type == "mlp":
             params = {
