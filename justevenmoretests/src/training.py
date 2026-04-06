@@ -84,7 +84,7 @@ def run_pytorch_hpo(model_type, data_splits, n_trials, hpo_seed):
                 "lr":           trial.suggest_float("lr", 5e-5, 5e-3, log=True),
                 "dropout":      trial.suggest_float("dropout", 0.0, 0.3),
                 "weight_decay": trial.suggest_float("weight_decay", 1e-6, 1e-2, log=True),
-                "batch_size":   trial.suggest_categorical("batch_size", [256, 512]),
+                "batch_size":   trial.suggest_categorical("batch_size", [1024, 2048]),
             }
             mdl = FTTransformer(input_dim, params["d_token"], params["n_layers"],
                                  dropout=params["dropout"]).to(device)
