@@ -54,7 +54,7 @@ def run_pytorch_hpo(model_type, data_splits, n_trials, hpo_seed):
     cw = np.clip(cw, a_min=None, a_max=50.0) 
     cw_tensor = torch.tensor(cw, dtype=torch.float32).to(device)
 # --- NEU: Subsampling für extrem große Datensätze in der HPO ---
-    MAX_HPO_SAMPLES = 50000
+    MAX_HPO_SAMPLES = 10000
     if len(X_train) > MAX_HPO_SAMPLES:
         print(f"  Reduziere Trainingsdaten für HPO von {len(X_train)} auf {MAX_HPO_SAMPLES} Samples...")
         X_hpo_base, _, y_hpo_base, _ = train_test_split(
