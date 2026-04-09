@@ -87,12 +87,12 @@ def run_pytorch_hpo(model_type, data_splits, n_trials, hpo_seed):
                                  params["d_model"], params["dropout"]).to(device)
         elif model_type == "ftt":
             params = {
-                "n_layers":     trial.suggest_int("n_layers", 1, 3),
-                "d_token":      trial.suggest_categorical("d_token", [64, 128, 192]),
+                "n_layers":     trial.suggest_int("n_layers", 1, 2),
+                "d_token":      trial.suggest_categorical("d_token", [64, 128]),
                 "lr":           trial.suggest_float("lr", 5e-5, 5e-3, log=True),
                 "dropout":      trial.suggest_float("dropout", 0.0, 0.3),
                 "weight_decay": trial.suggest_float("weight_decay", 1e-6, 1e-2, log=True),
-                "batch_size":   trial.suggest_categorical("batch_size", [512, 1024]),
+                "batch_size":   trial.suggest_categorical("batch_size", [512]),
             }
             mdl = FTTransformer(input_dim, params["d_token"], params["n_layers"],
                                  dropout=params["dropout"]).to(device)
